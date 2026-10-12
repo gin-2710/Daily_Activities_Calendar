@@ -159,13 +159,9 @@ Potential future improvements:
 ---
 
 ## Screenshots
+![Planner Screenshot](Screenshot.png)
 
-<Add screenshot>
-
-```markdown
-## Screenshots
-
-![Planner Screenshot](screenshot.png)ing
+---
 
 Contributions, suggestions, and improvements are welcome.
 
