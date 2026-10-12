@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Yearly Planner</title>
+    <style>
+      body {
+        font-family: Calibri, Arial, sans-serif;
+        color: #2b2b2b;
+        margin: 28px;
+        line-height: 1.35;
+        background: #fcfbf9;
+      }
+      .toolbar {
+        margin-bottom: 22px;
+        padding: 12px 16px;
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        display: inline-block;
+      }
+      .toolbar label {
+        font-size: 10.5pt;
+        color: #555;
+      }
+      .toolbar input,
+      .toolbar select {
+        font: inherit;
+        padding: 4px 7px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+      .toolbar button {
+        font: inherit;
+        padding: 6px 15px;
+        cursor: pointer;
+        border: 1px solid #d3ccc2;
+        border-radius: 7px;
+        background: #fff;
+        transition: background 0.15s;
+      }
+      .toolbar button:hover {
+        background: #f2ede6;
+      }
+      #copyBtn {
+        background: #6a4c9c;
+        color: #fff;
+        border-color: #5a3f87;
+      }
+      #copyBtn:hover {
+        background: #5a3f87;
+      }
+      .quarter-title {
+        font-size: 34pt;
+        font-weight: bold;
+        margin: 32px 0 10px;
+      }
+      .month-title {
+        font-size: 22pt;
+        font-weight: bold;
+        margin: 18px 0 10px;
+      }
+      table.layout {
+        border-collapse: collapse;
+        margin-bottom: 14px;
+      }
+      table.layout > tbody > tr > td {
+        vertical-align: top;
+        padding: 0;
+      }
+      td.col-left {
+        padding-right: 32px;
+      }
+      table.cal {
+        border-collapse: collapse;
+        margin-bottom: 8px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
+      table.cal td,
+      table.cal th {
+        border: 1px solid #e6e3df;
+        width: 58px;
+        height: 38px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 11pt;
+      }
+      table.cal td {
+        color: #3a3a3a;
+      }
+      table.cal th {
+        color: #fff;
+        font-weight: bold;
+        font-size: 9pt;
+        letter-spacing: 0.5px;
+      }
+      table.cal td.wk {
+        font-weight: bold;
+        color: #777;
+        width: 34px;
+      }
+      .cards {
+        margin-top: 12px;
+      }
+      table.card {
+        display: block;
+        width: 300px;
+        margin: 0 0 18px 0;
+        border-collapse: collapse;
+      }
+      td.week-head {
+        font-weight: bold;
+        font-size: 11pt;
+        padding: 4px 10px;
+      }
+      td.card-body {
+        padding: 4px 2px 0;
+      }
+      .day-label {
+        font-weight: bold;
+        font-size: 10pt;
+        margin-top: 7px;
+      }
+      .day-gap {
+        height: 14px;
+        line-height: 14px;
+      }
+      ul.day-bullets {
+        margin: 2px 0 4px 20px;
+        padding: 0;
+      }
+      ul.day-bullets li {
+        list-style: disc;
+        color: #000;
+        min-height: 18px;
+      }
+      @media print {
+        .toolbar {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <label>Year <input type="number" id="yearInput" min="1900" max="2999" step="1" style="width: 80px" /></label>
+      <label style="margin-left: 10px">
+        Month
+        <select id="monthSelect">
+          <option value="0">Full year</option>
+        </select>
+      </label>
+      <button id="genBtn" style="margin-left: 10px">Generate</button>
+      <button id="copyBtn" style="margin-left: 6px">Copy for OneNote</button>
+      <span id="status" style="margin-left: 12px; color: #666"
+        >Click &ldquo;Copy for OneNote&rdquo;, then paste into OneNote.</span
+      >
+    </div>
+    <div id="planner"></div>
+
+    <script>
+      const THEMES = {
+        1: { name: "January", main: "#D6C5B3" }, // beige
+        2: { name: "February", main: "#6FA8A0" }, // teal
+        3: { name: "March", main: "#B5693D" }, // sienna
+        4: { name: "April", main: "#89A7C2" }, // dusty blue
+        5: { name: "May", main: "#DEAB6E" }, // tan
+        6: { name: "June", main: "#9B8AC0" }, // dusty purple
+        7: { name: "July", main: "#A7BE77" }, // sage green
+        8: { name: "August", main: "#E2B4B4" }, // pink
+        9: { name: "September", main: "#4F8E86" }, // deep teal
+        10: { name: "October", main: "#D4A373" }, // caramel
+        11: { name: "November", main: "#6E8CA8" }, // steel blue
+        12: { name: "December", main: "#A678A8" }, // plum
+      };
+
+      const DAY_HEADERS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+      const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+      function ordinal(n) {
+        const mod100 = n % 100;
+        if (mod100 >= 11 && mod100 <= 13) return n + "th";
+        switch (n % 10) {
+          case 1:
+            return n + "st";
+          case 2:
+            return n + "nd";
+          case 3:
+            return n + "rd";
+          default:
+            return n + "th";
+        }
+      }
+
+      // Color helpers: derive a readable text color, dark ink, and pale tint from a base color.
+      function toRgb(hex) {
+        const h = hex.replace("#", "");
+        return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+      }
+      function hx(n) {
+        return Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+      }
+      function mix(hex, target, amt) {
+        const a = toRgb(hex);
+        return (
+          "#" +
+          hx(Math.round(a[0] + (target[0] - a[0]) * amt)) +
+          hx(Math.round(a[1] + (target[1] - a[1]) * amt)) +
+          hx(Math.round(a[2] + (target[2] - a[2]) * amt))
+        );
+      }
+      function tintOf(hex) {
+        return mix(hex, [255, 255, 255], 0.78);
+      }
+      function inkOf(hex) {
+        return mix(hex, [0, 0, 0], 0.48);
+      }
+      function readable(hex) {
+        const [r, g, b] = toRgb(hex);
+        const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return lum > 0.62 ? inkOf(hex) : "#ffffff";
+      }
+
+      // Builds one month block: heading + calendar grid (left) + weekly Mon-Fri sections (right).
+      function buildMonth(year, month) {
+        const theme = THEMES[month];
+        const first = new Date(year, month - 1, 1);
+        const startDow = first.getDay(); // Sunday = 0
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const weekRows = Math.ceil((startDow + daysInMonth) / 7);
+
+        const main = theme.main;
+        const tint = tintOf(main); // pale fill for Wk column + card header
+        const ink = inkOf(main); // dark text for titles/labels
+        const headText = readable(main); // readable header-row text
+
+        // Left column: calendar grid.
+        let grid = '<table class="cal"><tr>';
+        grid += `<th style="background:${main};color:${headText};font-weight:bold">Wk</th>`;
+        for (const d of DAY_HEADERS)
+          grid += `<th style="background:${main};color:${headText};font-weight:bold">${d}</th>`;
+        grid += "</tr>";
+
+        let dayNum = 1 - startDow;
+        for (let w = 1; w <= weekRows; w++) {
+          grid += "<tr>";
+          grid += `<td class="wk" style="background:${tint}">${w}</td>`;
+          for (let col = 0; col < 7; col++) {
+            const show = dayNum >= 1 && dayNum <= daysInMonth;
+            const weekend = col === 0 || col === 6;
+            const cellBg = weekend ? ";background:#f6f4f1" : "";
+            grid += `<td style="color:#3a3a3a${cellBg}">${show ? dayNum : ""}</td>`;
+            dayNum++;
+          }
+          grid += "</tr>";
+        }
+        grid += "</table>";
+
+        // Weekly cards (Mon-Fri only). Each card is its own table so OneNote pastes it as a separate block.
+        const cards = [];
+        dayNum = 1 - startDow;
+        for (let w = 1; w <= weekRows; w++) {
+          let days = "";
+          for (let col = 0; col < 7; col++) {
+            const inMonth = dayNum >= 1 && dayNum <= daysInMonth;
+            const isWeekday = col >= 1 && col <= 5;
+            if (inMonth && isWeekday) {
+              const label = `${ordinal(dayNum)}: ${DAY_NAMES[col]}`;
+              days += `<div class="day-label" style="color:${ink};font-weight:bold"><b>${label}</b></div><ul class="day-bullets"><li>&nbsp;</li></ul><div class="day-gap">&nbsp;</div>`;
+            }
+            dayNum++;
+          }
+          if (days) {
+            cards.push(
+              `<table class="card"><tr><td class="week-head" style="background:${tint};color:${ink};font-weight:bold"><b>Week ${w}</b></td></tr><tr><td class="card-body">${days}</td></tr></table>`,
+            );
+          }
+        }
+
+        const weeks = `<div class="cards">${cards.join("")}</div>`;
+
+        let html = "";
+        html += `<div class="month-title" style="color:${ink};font-weight:bold;font-size:22pt"><b>${theme.name} ${year}</b></div>`;
+        html += grid;
+        html += `<div class="day-gap">&nbsp;</div>`;
+        html += weeks;
+        return html;
+      }
+
+      function buildPlanner(year) {
+        let html = "";
+        for (let q = 1; q <= 4; q++) {
+          html += `<div class="quarter-title" style="font-weight:bold;font-size:34pt"><b>Q${q} ${year}</b></div>`;
+          for (let i = 0; i < 3; i++) {
+            const month = (q - 1) * 3 + 1 + i;
+            html += buildMonth(year, month);
+          }
+        }
+        return html;
+      }
+
+      const yearInput = document.getElementById("yearInput");
+      const monthSelect = document.getElementById("monthSelect");
+
+      for (let m = 1; m <= 12; m++) {
+        const opt = document.createElement("option");
+        opt.value = String(m);
+        opt.textContent = THEMES[m].name;
+        monthSelect.appendChild(opt);
+      }
+
+      // month 0 = full year (all 4 quarters); 1-12 = single month block.
+      function render() {
+        const year = parseInt(yearInput.value, 10) || new Date().getFullYear();
+        const month = parseInt(monthSelect.value, 10);
+        document.getElementById("planner").innerHTML = month === 0 ? buildPlanner(year) : buildMonth(year, month);
+      }
+
+      yearInput.value = new Date().getFullYear();
+      document.getElementById("genBtn").addEventListener("click", render);
+      yearInput.addEventListener("change", render);
+      monthSelect.addEventListener("change", render);
+      render();
+
+      const statusEl = document.getElementById("status");
+      function flash(message) {
+        statusEl.textContent = message;
+        setTimeout(() => {
+          statusEl.textContent = "Click \u201CCopy for OneNote\u201D, then paste into OneNote.";
+        }, 2500);
+      }
+
+      // Copies only the generated planner (not the toolbar controls).
+      async function copyPlanner() {
+        const el = document.getElementById("planner");
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              "text/html": new Blob([el.innerHTML], { type: "text/html" }),
+              "text/plain": new Blob([el.innerText], { type: "text/plain" }),
+            }),
+          ]);
+          flash("Copied! Paste into OneNote.");
+        } catch (e) {
+          // Fallback for browsers/contexts without the async clipboard API (e.g. file://).
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          const ok = document.execCommand("copy");
+          sel.removeAllRanges();
+          flash(ok ? "Copied! Paste into OneNote." : "Copy failed \u2014 select the content manually.");
+        }
+      }
+
+      document.getElementById("copyBtn").addEventListener("click", copyPlanner);
+    </script>
+  </body>
+</html>
